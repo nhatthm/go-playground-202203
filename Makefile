@@ -1,14 +1,11 @@
-VENDOR_DIR = vendor
+APP = playground-202203
+BUILD_DIR = build
 
 GO ?= go
 GOLANGCI_LINT ?= golangci-lint
+PARALLEL ?= 5
 
-.PHONY: $(VENDOR_DIR) lint test test-unit
-
-$(VENDOR_DIR):
-	@mkdir -p $(VENDOR_DIR)
-	@$(GO) mod vendor
-	@$(GO) mod tidy
+.PHONY: $(BUILD_DIR)/$(APP) $(BUILD_DIR) lint test example
 
 lint:
 	@$(GOLANGCI_LINT) run
@@ -16,3 +13,17 @@ lint:
 test:
 	@echo ">> unit test"
 	@$(GO) test -gcflags=-l -coverprofile=unit.coverprofile -covermode=atomic -race -count 5 ./... -tags testcoverage
+
+$(BUILD_DIR)/$(APP):
+	@echo ">> build"
+	@rm -f $(BUILD_DIR)/*
+	@$(GO) build -o $(BUILD_DIR)/$(APP) main.go
+
+$(BUILD_DIR): $(BUILD_DIR)/$(APP)
+
+example: $(BUILD_DIR)/$(APP)
+	$(BUILD_DIR)/$(APP) -parallel $(PARALLEL) $(shell cat examples.txt)
+
+clean:
+	@echo ">> clean"
+	@rm -rf $(BUILD_DIR)
