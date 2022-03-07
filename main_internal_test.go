@@ -203,6 +203,15 @@ func TestHashStream_CouldNotRead(t *testing.T) {
 	assertEqualError(t, err, "could not read from source: read error")
 }
 
+func TestHashStream_Success(t *testing.T) {
+	t.Parallel()
+
+	result, err := hashStream(strings.NewReader("hello world!"))
+
+	assertEqual(t, "fc3ff98e8c6a0d3087d515c0473f8677", result)
+	assertNoError(t, err)
+}
+
 func TestHashURL_TimedOut(t *testing.T) {
 	t.Parallel()
 
