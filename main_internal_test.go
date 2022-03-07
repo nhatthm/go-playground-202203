@@ -18,6 +18,18 @@ import (
 	"time"
 )
 
+func TestRunMain_MinWorkersError(t *testing.T) { // nolint: paralleltest
+	runMainTest(t, []string{"-parallel=0"}, func(t *testing.T, code int, stdOut *bytes.Buffer, stdErr *bytes.Buffer) {
+		t.Helper()
+
+		err := "number of workers must be greater than 0\n"
+
+		assertEqual(t, exitCodeBadArgs, code)
+		assertEqual(t, 0, stdOut.Len())
+		assertEqual(t, err, stdErr.String())
+	})
+}
+
 func TestRunMain_MaxWorkersError(t *testing.T) { // nolint: paralleltest
 	runMainTest(t, []string{"-parallel=25"}, func(t *testing.T, code int, stdOut *bytes.Buffer, stdErr *bytes.Buffer) {
 		t.Helper()

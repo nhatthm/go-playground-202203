@@ -67,7 +67,11 @@ func main() {
 func runMain() int {
 	flag.Parse()
 
-	if argNumWorkers > maxNumWorkers {
+	if argNumWorkers < 1 {
+		_, _ = fmt.Fprintf(stdErr, "number of workers must be greater than 0\n")
+
+		return exitCodeBadArgs
+	} else if argNumWorkers > maxNumWorkers {
 		_, _ = fmt.Fprintf(stdErr, "maximum workers is %d\n", maxNumWorkers)
 
 		return exitCodeBadArgs
