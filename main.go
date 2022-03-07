@@ -207,6 +207,20 @@ func hashURLWorker(ctx context.Context, ch <-chan url.URL, workerTimeout time.Du
 	}
 }
 
+func hashURLProducer(urls []url.URL) <-chan url.URL {
+	ch := make(chan url.URL, len(urls))
+
+	go func() {
+		for _, u := range urls {
+			ch <- u
+		}
+
+		close(ch)
+	}()
+
+	return ch
+}
+
 func hashURLs(ctx context.Context, urls []url.URL, numWorkers int, workerTimeout time.Duration, out io.Writer, outErr io.Writer) int {
 	numURLs := len(urls)
 	if numURLs == 0 {
@@ -220,7 +234,9 @@ func hashURLs(ctx context.Context, urls []url.URL, numWorkers int, workerTimeout
 
 	code := int64(exitCodeOK)
 	wg := sync.WaitGroup{}
-	ch := make(chan url.URL, len(urls))
+
+	// Start the producer to send urls to workers.
+	ch := hashURLProducer(urls)
 
 	wg.Add(numWorkers)
 
@@ -234,15 +250,6 @@ func hashURLs(ctx context.Context, urls []url.URL, numWorkers int, workerTimeout
 			}
 		}()
 	}
-
-	// Start the producer to send urls to workers.
-	go func() {
-		for _, u := range urls {
-			ch <- u
-		}
-
-		close(ch)
-	}()
 
 	wg.Wait()
 
