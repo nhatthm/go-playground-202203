@@ -44,6 +44,7 @@ var (
 	// argNumWorkers is the number of workers for hashing urls. Default to defaultNumWorkers.
 	argNumWorkers = defaultNumWorkers
 
+	// The outputs to print out results.
 	stdOut io.Writer = os.Stdout
 	stdErr io.Writer = os.Stderr
 
@@ -64,6 +65,11 @@ func main() {
 	os.Exit(runMain())
 }
 
+// runMain runs the application and validate arguments.
+//
+// Notes:
+// 	- If -parallel is omitted, the number of workers is defaultNumWorkers. Otherwise, a number in between 1 and maxNumWorkers is accepted.
+// 	- The url does not need a scheme, in case of omitting, "https" is automatically appended to the url.
 func runMain() int {
 	flag.Parse()
 
@@ -84,6 +90,7 @@ func runMain() int {
 		return exitCodeBadArgs
 	}
 
+	// Graceful shutdown does not bring any values in this application. It is just for demonstration and fun.
 	ctx, cancel := context.WithCancel(context.Background())
 
 	sigs := make(chan os.Signal, 1)
@@ -102,6 +109,8 @@ func runMain() int {
 	return hashURLs(ctx, urls, argNumWorkers, defaultTimeout, stdOut, stdErr)
 }
 
+// parseURLs parses the urls string and returns a list of url.URL. If the scheme is omitted, "https" is appended.
+// The function will check for missing hostname and unsupported schemes.
 func parseURLs(urls []string) ([]url.URL, error) {
 	result := make([]url.URL, 0, len(urls))
 
@@ -158,6 +167,7 @@ func hashStream(r io.Reader) (string, error) {
 	return hex.EncodeToString(hash.Sum(nil)), nil
 }
 
+// hashURL creates a hash for the given url by hashing the content using md5.
 func hashURL(ctx context.Context, url url.URL) (string, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url.String(), nil)
 	mustNoError(err) // This should not happen because all the params are validated.
@@ -178,14 +188,17 @@ func hashURL(ctx context.Context, url url.URL) (string, error) {
 	return hashStream(resp.Body)
 }
 
+// hashURLWorker reads and hash the urls then sends to the outputs. The worker stops when the context is done or no url to process (channel is closed).
 func hashURLWorker(ctx context.Context, ch <-chan url.URL, workerTimeout time.Duration, out io.Writer, outErr io.Writer) error {
 	for {
 		select {
+		// Context is done, probably because of canceling or timing out.
 		case <-ctx.Done():
 			return ctx.Err()
 
 		case u, ok := <-ch:
 			if !ok {
+				// Stop the worker if channel is closed.
 				return nil
 			}
 
@@ -195,6 +208,7 @@ func hashURLWorker(ctx context.Context, ch <-chan url.URL, workerTimeout time.Du
 			cancelHashCtx()
 
 			if err != nil {
+				// If the context is intentionally canceled, we do not consider that as an error.
 				if !errors.Is(err, context.Canceled) {
 					writeOut(outErr, u, err.Error())
 				}
@@ -207,6 +221,7 @@ func hashURLWorker(ctx context.Context, ch <-chan url.URL, workerTimeout time.Du
 	}
 }
 
+// hashURLProducer sends the urls asynchronously.
 func hashURLProducer(urls []url.URL) <-chan url.URL {
 	ch := make(chan url.URL, len(urls))
 
@@ -221,9 +236,12 @@ func hashURLProducer(urls []url.URL) <-chan url.URL {
 	return ch
 }
 
+// hashURLs hashes the urls using multiple workers following the producer/worker pattern and sends result to the outputs.
+// The returned status code indicates the result of the whole process.
 func hashURLs(ctx context.Context, urls []url.URL, numWorkers int, workerTimeout time.Duration, out io.Writer, outErr io.Writer) int {
 	numURLs := len(urls)
 	if numURLs == 0 {
+		// Nothing to do.
 		return exitCodeOK
 	}
 
@@ -256,6 +274,7 @@ func hashURLs(ctx context.Context, urls []url.URL, numWorkers int, workerTimeout
 	return int(code)
 }
 
+// writeOut ensures only worker could write to either out or outErr at a time. This is to avoid race condition that leads to broken output.
 func writeOut(w io.Writer, url url.URL, message string) {
 	outputMu.Lock()
 	defer outputMu.Unlock()
@@ -264,12 +283,14 @@ func writeOut(w io.Writer, url url.URL, message string) {
 	mustNoError(err)
 }
 
+// mustNoError panics when there is an error.
 func mustNoError(err error) {
 	if err != nil {
 		panic(err)
 	}
 }
 
+// errToCode converts error to status code. If there is no error or the status is exitCodeError, the status code is left intact.
 func errToCode(code *int64, err error) {
 	if err == nil {
 		return
