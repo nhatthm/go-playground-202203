@@ -38,6 +38,9 @@ const (
 
 	// Limitation for number of workers to avoid resource saturation.
 	maxNumWorkers = 24
+
+	// bufferSize is the buffer size for reading.
+	bufferSize = 512
 )
 
 var (
@@ -145,7 +148,7 @@ func hashStream(r io.Reader) (string, error) {
 	hash := md5.New()
 
 	if r != nil {
-		buf := make([]byte, 512)
+		buf := make([]byte, bufferSize)
 
 		for {
 			received, err := r.Read(buf)

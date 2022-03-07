@@ -212,6 +212,19 @@ func TestHashStream_Success(t *testing.T) {
 	assertNoError(t, err)
 }
 
+func TestHashStream_Success_LargerThanBuffer(t *testing.T) {
+	t.Parallel()
+
+	data := strings.Repeat("foobar", 120)
+
+	assertEqual(t, true, len(data) > bufferSize) // Guarantee the data is bigger than buffer.
+
+	result, err := hashStream(strings.NewReader(data))
+
+	assertEqual(t, "800bb04adf212d72d3293da2613a9b89", result)
+	assertNoError(t, err)
+}
+
 func TestHashURL_TimedOut(t *testing.T) {
 	t.Parallel()
 
