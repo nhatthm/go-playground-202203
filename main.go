@@ -72,7 +72,7 @@ func main() {
 //
 // Notes:
 // 	- If -parallel is omitted, the number of workers is defaultNumWorkers. Otherwise, a number in between 1 and maxNumWorkers is accepted.
-// 	- The url does not need a scheme, in case of omitting, "https" is automatically appended to the url.
+// 	- The url does not need a scheme, in case of omitting, "https" is automatically prepended to the url.
 func runMain() int {
 	flag.Parse()
 

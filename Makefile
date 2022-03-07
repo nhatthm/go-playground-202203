@@ -5,7 +5,7 @@ GO ?= go
 GOLANGCI_LINT ?= golangci-lint
 PARALLEL ?= 5
 
-.PHONY: $(BUILD_DIR)/$(APP) $(BUILD_DIR) lint test example
+.PHONY: $(BUILD_DIR)/$(APP) $(BUILD_DIR) lint test example clean
 
 lint:
 	@$(GOLANGCI_LINT) run
