@@ -150,20 +150,8 @@ func hashStream(r io.Reader) (string, error) {
 	if r != nil {
 		buf := make([]byte, bufferSize)
 
-		for {
-			received, err := r.Read(buf)
-			if received > 0 {
-				_, err := hash.Write(buf[:received])
-				mustNoError(err) // This should not happen.
-			}
-
-			if err != nil {
-				if !errors.Is(err, io.EOF) {
-					return "", fmt.Errorf("could not read from source: %w", err)
-				}
-
-				break
-			}
+		if _, err := io.CopyBuffer(hash, r, buf); err != nil && !errors.Is(err, io.EOF) {
+			return "", fmt.Errorf("could not read from source: %w", err)
 		}
 	}
 
